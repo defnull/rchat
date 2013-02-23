@@ -25,7 +25,7 @@ class Model(object):
         self.db = sqlite.connect(':memory:')
         with self.db:
             c = self.db.cursor()
-            c.execute('CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE, password TEXT)')
+            c.execute('CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, password TEXT)')
 
     def add_user(self, email, password):
         with self.db:
@@ -41,7 +41,7 @@ class Model(object):
                 self.db.rollback()
                 raise RegisterError('Email used')
 
-    def check_user(self, email, password):
+    def login_user(self, email, password):
         with self.db:
             c = self.db.cursor()
             phash = hash(password)
@@ -173,16 +173,17 @@ class LoginHandler(BaseHandler):
         self.account = None
         self.session.auth = self
 
-    def on_auth(self, msg):
+    def on_login(self, msg):
         if self.account: return
-        user     = msg.get('email')
+        login     = msg.get('login')
         password = msg.get('password')
-        if db.check_user(user, password):
+        user = db.login_user(login, password)
+        if user:
             self.account = user
-            self.send('auth.ok')
+            self.send('login.ok')
             self.session.push_handler(ChatHandler())
         else:
-            self.send('auth.failed')
+            self.send('login.failed')
 
     def on_register(self, msg):
         if self.account: return
@@ -202,7 +203,7 @@ class ChatHandler(BaseHandler):
     def init(self):
         self.session.chat = self
         self.rooms = []
-        self.chat = self.session
+        self.send('chat.init')
 
     def on_join(self, msg):
         if not self.session.auth.account: return

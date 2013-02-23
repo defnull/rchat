@@ -4,40 +4,43 @@
 rchat.mixin = {}
 
 rchat.mixin.EventMixin = function(self) {
-    /* Event management */
+    /* Event management
+       TODO: A way to delegate/forward events
+    */
     if (self.events) return;
-    self.events = {}
-
-    self.add_events = function() {
-        for (var i = 0; i < arguments.length; i++) {
-            var name = arguments[i];
-            if(self.events.hasOwnProperty(name)) {
-                throw "Adding event failed: Colliding with "+event;
-            }
-            self.events[arguments[i]] = [];
-        }
-    }
+    self.event = {}
 
     self.bind = function(name, callback, context) {
         if(context) callback = jQuery.proxy(callback, context)
-        if(! self.events.hasOwnProperty(name)) {
-            throw "Unsupported event: "+name;
+        if(! self.event.hasOwnProperty(name)) {
+            self.event[name] = [];
         }
-        self.events[name] = self.events[name] || [];
-        self.events[name].push(callback);
+        self.event[name].push(callback);
+        return callback
+    }
+    
+    self.once = function(name, callback, context) {
+        callback = self.bind(name, callback, context)
+        self.bind(name, function() {
+            self.unbind(name, callback)
+        })
+        return callback
+    }
+
+    self.unbind = function(name, callback) {
+        if(! self.event.hasOwnProperty(name)) return;
+        var index = self.event[name].indexOf(callback);
+        if(index!=-1) self.event[name].splice(index, 1);
     }
 
     self.trigger = function(name) {
         var args = Array.prototype.slice.call(arguments);
-        console.log(self, arguments)
         var name = args.shift()
-        var event_list = self.events[name];
+        console.log('Event', name, args, self)
+        var event_list = self.event[name];
         if(event_list) {
             for(var i=0, len=event_list.length; i < len; i++) {
-                if(event_list[i].apply(null, args) === false) {
-                    event_list.splice(i, 1);
-                    i--;
-                }
+                event_list[i].apply(null, args)
             }
         }
     }
@@ -48,7 +51,6 @@ rchat.mixin.ViewMixin = function(self, node_id) {
     if (self.dom) return;
 
     rchat.mixin.EventMixin(self);
-    self.add_events('gui.show', 'gui.hide', 'gui.remove');
 
     self.dom = jQuery(node_id);
 

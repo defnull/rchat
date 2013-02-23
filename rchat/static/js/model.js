@@ -2,33 +2,41 @@
 
 rchat.model = {};
 
-
 rchat.model.WSClient = function(url) {
     /* A reconnecting websocket client with an event-based JSON encoded
-        message protocol. */
+        message protocol.
+    
+        TODO: AJAX api for request/response type communication
+        TODO: (long-)poll fallback for browsers without websocket support (?)
+
+    */
+
+	rchat.mixin.ModelMixin(this)
+
     var socket;
     var callbacks = {};
     var send_buffer = [];
     var self = this;
     var uuid = null;
+    var next_ref = 0;
 
-    this.connect = function() {
+    self.connect = function() {
         if(socket && socket.readyState == WebSocket.OPEN) {
             socket.close()
         }
         socket = new WebSocket(url);
         socket.onopen = function(e) {
-            self.dispatch('socket.connect', {name:'socket.connect', data:{}})
+            self.trigger('socket.connect', {})
             if(uuid) self.send('RECONNECT', {'uuid':uuid}, true)
             else     self.send('CONNECT', {}, true)
             self.flush()
         }
         socket.onerror = function(e) {
-            self.dispatch('socket.error', {name:'socket.error', data:{}})
+            self.trigger('socket.error', {})
         }
         socket.onclose = function(e) {
             socket = null;
-            self.dispatch('socket.close', {name:'socket.close', data:{}})
+            self.trigger('socket.close', {})
         }
         socket.onmessage = function(e) {
             var event = JSON.parse(e.data);
@@ -38,48 +46,70 @@ rchat.model.WSClient = function(url) {
             if(event.name === 'HELLO') {
                 uuid = event.data.uuid;
             }
-            self.dispatch(event.name, event);
+            self.trigger(event.name, event.data);
         }
     }
 
-    this.dispatch = function(event_name, message) {
-        var cblist = callbacks[event_name];
-        if(cblist) {
-            for(var i=cblist.length-1; i >= 0; i--){
-                if(cblist[i](message) === false) return;
-            }
-        }
-        if(event_name != '*') self.dispatch('*', message)
-    }
-
-    this.bind = function(event_name, callback){
-        callbacks[event_name] = callbacks[event_name] || [];
-        callbacks[event_name].push(callback);
-        return self;
-    };
-
-    this.flush = function() {
+    self.flush = function() {
         while(send_buffer.length && socket && socket.readyState == WebSocket.OPEN) {
             var payload = send_buffer.shift()
             socket.send(JSON.stringify(payload));
-            self.dispatch('socket.sent', payload)
+            self.trigger('socket.sent', payload)
         }
     }
 
-    this.send = function(event_name, event_data, priority) {
-        var obj = {
+    self.send = function(event_name, event_data, priority) {
+        var ref = next_ref++;
+        var payload = {
             name: event_name,
+            ref: ref,
             data: event_data
         }
-        priority ? send_buffer.unshift(obj) : send_buffer.push(obj);
+        priority ? send_buffer.unshift(payload) : send_buffer.push(payload);
         self.flush()
         return self;
     };
 };
 
 
+rchat.model.AuthModel = function(conn) {
+	rchat.mixin.ModelMixin(this)
+    var self = this;
+    self.logged_in = false;
+
+    self.login = function(login, password) {
+        conn.send('login', {login: login, password: password})
+    }
+
+    self.register = function(email, password) {
+        conn.send('register', {email: email, password: password})
+    }
+
+    conn.bind('login.ok', function(e) {
+        self.logged_in = true;
+        self.trigger('login.ok', e)
+    })
+
+    conn.bind('login.failed', function(e) {
+        self.logged_in = false;
+        self.trigger('login.failed', e)
+    })
+
+    conn.bind('register.ok', function(e) {
+        self.logged_in = true;
+        self.trigger('register.ok', e)
+    })
+
+    conn.bind('register.failed', function(e) {
+        self.logged_in = false;
+        self.trigger('register.failed', e)
+    })
+
+}
+
+
 rchat.model.ChatModel = function(conn) {
-	rchat.mixins.ModelMixin(this)
+	rchat.mixin.ModelMixin(this)
 
     var self = this;
     self.conn = conn;

@@ -25,7 +25,6 @@ rchat.gui.StatusLED = function() {
 
 rchat.gui.LoginForm = function() {
     rchat.mixin.ViewMixin(this, '#rchat-login');
-    this.add_events('login', 'register')
 
     var self = this;
     var action = 'login';
