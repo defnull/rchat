@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>RChat</title>
+        <link href="/static/bootstrap/css/bootstrap.css" rel="stylesheet">
+      <style>
+        .hidden {display: none;}
+        #rchat-status-led {position:fixed; top:2px; right:2px;}
+      </style>
+    </head>
+    <body>
+
+        <noscript id='rchat-noscript'>
+            Diese Seite funktioniert nur mit aktiviertem JavaScript.
+        </noscript>
+
+        <div id='rchat-status-led' class='hidden'>
+             <span class="label">Offline</span>
+             <span class="label label-success">Online</span>
+             <span class="label label-error">Error...</span>
+        </div>
+
+        <div id='rchat-login' class='container hidden'>
+            <div class="span6 offset3 well">
+                <h2>Login</h2>
+                <form class="form-horizontal">
+                    <div class="control-group">
+                        <label class="control-label" for="email">Email</label>
+                        <div class="controls">
+                            <input type="text" name="email" placeholder="Email">
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label" for="password">Password</label>
+                        <div class="controls">
+                            <input type="password" name="password" placeholder="Password">
+                        </div>
+                    </div>
+                    <div class="alert alert-error hidden">Login failed</div>
+                    <div class="control-group">
+                        <div class="controls">
+                            <button type="submit" name="login" class="btn btn-primary">Sign in</button>
+                            or
+                            <button type="submit" name="register" class="btn">Create account</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+
+        <div id="rchat-templates" class="hidden">
+
+            <div class="rchat-tpl-chatframe container-fluid">
+                <div class="row-fluid">
+                    <div class="span2">
+                        <ul class="nav nav-list" id='nav-open-chats'>
+                            <li class="nav-header">Open {{Chats}}</li>
+                        </ul>
+                    </div>
+                    <div class="span10">
+                        <div id="page-wrap">
+                            <div id="rchat-chatbox">
+
+                            </div>
+                            <ul id="status"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <script src="http://code.jquery.com/jquery-latest.js"></script>
+        <script src='/static/bootstrap/js/bootstrap.min.js' type="text/javascript"></script>
+        <script src='/static/js/rchat.js' type="text/javascript"></script>
+        <script src='/static/js/util.js' type="text/javascript"></script>
+        <script src='/static/js/mixin.js' type="text/javascript"></script>
+        <script src='/static/js/model.js' type="text/javascript"></script>
+        <script src='/static/js/gui.js' type="text/javascript"></script>
+        <script type="text/javascript">
+
+
+
+        var app = new rchat.ChatApp({websocket:'ws://localhost:8080/websocket', debug:1})
+        app.start()
+
+        </script>
+    </body>
+</html>
