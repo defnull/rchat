@@ -1,5 +1,5 @@
 dev: venv
-	venv/bin/python -mrchat.cmd
+	venv/bin/python run-dev.py
 
 venv: venv/bin/activate
 venv/bin/activate: requirements.txt
